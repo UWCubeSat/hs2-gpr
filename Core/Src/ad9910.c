@@ -24,7 +24,7 @@ state AD9910_Init(){
 	rs |= AD9910_WriteReg(CFR1, (SDIO_INPUT_ONLY));
 	rs |= AD9910_IO_Update();
 
-	rs |= AD9910_WriteReg(CFR2, (SYNC_TIM_V_DIS));
+	rs |= AD9910_WriteReg(CFR2, (SYNC_TIM_V_DIS | A_FROM_STP));
 	rs |= AD9910_IO_Update();
 
 	rs |= AD9910_WriteReg(CFR3, (VCO5 | CP_387 | INP_DIV_RST | PLL_EN | (PLL_MULT << 1))); //refclk off
@@ -55,16 +55,13 @@ state AD9910_ConfigureRamp(float lower, float upper, float ramptime){
 
 	//Turn on DRG, set destination to frequency, no dwell high
 	uint32_t cfr2 = AD9910_ReadReg32(CFR2);
-	rs |= AD9910_WriteReg(CFR2, ((cfr2 & ~(0b11 << 20)) | DR_ENABLE | DR_NDH));
+	rs |= AD9910_WriteReg(CFR2, ((cfr2 & ~(0b11 << 20)) | DR_ENABLE));
 	rs |= AD9910_IO_Update();
 	return rs;
 }
 
 state AD9910_StartRamp(){
 	state rs = PASS;
-
-	uint32_t cfr2 = AD9910_ReadReg32(CFR2);
-	if(!(cfr2 & DR_ENABLE)) return FAIL;
 
 	HAL_GPIO_WritePin(AD9910_DRCTL_GPIO_Port, AD9910_DRCTL_Pin, GPIO_PIN_SET); //ramp
 

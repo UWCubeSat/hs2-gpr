@@ -23,6 +23,8 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "ad9910.h"
+#include <stdio.h>
+#include "retarget.h"
 
 /* USER CODE END Includes */
 
@@ -44,7 +46,11 @@
 /* Private variables ---------------------------------------------------------*/
 SPI_HandleTypeDef hspi2;
 
+UART_HandleTypeDef huart2;
+
 /* USER CODE BEGIN PV */
+
+char buf[256];  //buffer for printf/scanf
 
 /* USER CODE END PV */
 
@@ -52,6 +58,7 @@ SPI_HandleTypeDef hspi2;
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_SPI2_Init(void);
+static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -90,13 +97,15 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_SPI2_Init();
+  MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
+  RetargetInit(&huart2); //set up debug printf
   AD9910_Init();
 
   //Create a single tone
   AD9910_SingleTone(PF0, 10E6, 0.5);
   HAL_Delay(10);
-  AD9910_ConfigureRamp(10E6, 20E6, 0.5);
+  AD9910_ConfigureRamp(10E6, 20E6, 2);
 
   /* USER CODE END 2 */
 
@@ -105,11 +114,10 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-	  
 
     /* USER CODE BEGIN 3 */
 	  HAL_Delay(1000);
-	  AD9910_StartRamp();
+	  printf("Hi!\n\r");
   }
   /* USER CODE END 3 */
 }
@@ -192,6 +200,39 @@ static void MX_SPI2_Init(void)
   /* USER CODE BEGIN SPI2_Init 2 */
 
   /* USER CODE END SPI2_Init 2 */
+
+}
+
+/**
+  * @brief USART2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART2_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART2_Init 0 */
+
+  /* USER CODE END USART2_Init 0 */
+
+  /* USER CODE BEGIN USART2_Init 1 */
+
+  /* USER CODE END USART2_Init 1 */
+  huart2.Instance = USART2;
+  huart2.Init.BaudRate = 115200;
+  huart2.Init.WordLength = UART_WORDLENGTH_8B;
+  huart2.Init.StopBits = UART_STOPBITS_1;
+  huart2.Init.Parity = UART_PARITY_NONE;
+  huart2.Init.Mode = UART_MODE_TX_RX;
+  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART2_Init 2 */
+
+  /* USER CODE END USART2_Init 2 */
 
 }
 
