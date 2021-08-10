@@ -118,6 +118,8 @@ void Error_Handler(void);
 #define AD9910_DRCTL_GPIO_Port GPIOB
 #define AD9910_DRHOLD_Pin GPIO_PIN_7
 #define AD9910_DRHOLD_GPIO_Port GPIOB
+#define TRIG_Pin GPIO_PIN_1
+#define TRIG_GPIO_Port GPIOE
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */

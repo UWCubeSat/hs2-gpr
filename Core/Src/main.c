@@ -105,7 +105,7 @@ int main(void)
   //Create a single tone
   AD9910_SingleTone(PF0, 10E6, 0.5);
   HAL_Delay(10);
-  AD9910_ConfigureRamp(10E6, 20E6, 2);
+  AD9910_ConfigureRamp(1E6, 20E6, 2E-6);
 
   /* USER CODE END 2 */
 
@@ -116,8 +116,8 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  HAL_Delay(1000);
-	  printf("Hi!\n\r");
+	  AD9910_StartRamp();
+	  HAL_Delay(10000);
   }
   /* USER CODE END 3 */
 }
@@ -251,6 +251,7 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
+  __HAL_RCC_GPIOE_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOD, LD4_Pin|LD3_Pin|LD5_Pin|AD9910_OSK_Pin
@@ -265,6 +266,9 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, AD9910_F1_Pin|AD9910_DRCTL_Pin|AD9910_DRHOLD_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(TRIG_GPIO_Port, TRIG_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : B1_Pin */
   GPIO_InitStruct.Pin = B1_Pin;
@@ -321,6 +325,13 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : TRIG_Pin */
+  GPIO_InitStruct.Pin = TRIG_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+  HAL_GPIO_Init(TRIG_GPIO_Port, &GPIO_InitStruct);
 
 }
 
