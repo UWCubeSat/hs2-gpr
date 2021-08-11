@@ -45,6 +45,56 @@ state AD9910_Init(){
 	return rs;
 }
 
+//Starts the chirp
+state AD9910_Chirp(){
+	#ifdef DEBUG_PRINTING
+	printf("Chirping\n\r");
+	#endif
+	state rs = PASS;
+
+	/*set the clear digital ramp accumulator bit so that we can start both the DRG and RAM Sweep
+	* with an IO Update. I also clear the phase accumulator, so we always start in the same place */
+	uint32_t cfr1 = AD9910_ReadReg32(CFR1);
+	rs |= AD9910_WriteReg(CFR1, (cfr1 | DR_CLEAR) & ~(RAM_ENABLE));
+
+	AD9910_IO_Update(); //save this
+
+	/*clear the "clear digital ramp accumulator" and "clear phase accumulator" bits so that when the next
+	* IO update is issued, both the RAM Sweep and DRG start */
+	cfr1 = AD9910_ReadReg32(CFR1);
+	rs |= AD9910_WriteReg(CFR1, ((cfr1 & ~(DR_CLEAR)) | RAM_ENABLE));
+
+	HAL_GPIO_WritePin(AD9910_DRCTL_GPIO_Port, AD9910_DRCTL_Pin, GPIO_PIN_SET); //ramp up when you can
+	HAL_GPIO_WritePin(TRIG_GPIO_Port, TRIG_Pin, GPIO_PIN_SET); //set the trigger
+	AD9910_IO_Update(); //issue an IO update to start the chirp
+	HAL_GPIO_WritePin(TRIG_GPIO_Port, TRIG_Pin, GPIO_PIN_RESET); //release the trigger
+	while(!(HAL_GPIO_ReadPin(AD9910_DROVER_GPIO_Port, AD9910_DROVER_Pin) &&
+			HAL_GPIO_ReadPin(AD9910_RSOVER_GPIO_Port, AD9910_RSOVER_Pin))); //wait for the ramp to finish
+
+	HAL_GPIO_WritePin(AD9910_DRCTL_GPIO_Port, AD9910_DRCTL_Pin, GPIO_PIN_RESET); //clear the trigger
+	return PASS;
+}
+
+/*
+ *Sets up a Hann-Windowed Chirp. Only works for sufficiently long durations to use the entire RAM
+ */
+state AD9910_ConfigureChirp(float lower, float upper, float duration){
+	#ifdef DEBUG_PRINTING
+	printf("Setting up a Hann-Windowed Chirp from %fHz to %fHz in %fs\n\r", lower, upper, duration);
+	#endif
+
+	state rs = PASS;
+
+	HAL_GPIO_WritePin(TRIG_GPIO_Port, TRIG_Pin, GPIO_PIN_RESET); //clear the trigger
+
+	AD9910_ConfigureRamp(lower, upper, duration); //set up the frequency sweep
+
+	AD9910_ConfigureRAM(duration);
+
+	return rs;
+
+}
+
 state AD9910_StartRAMRamp(){
 	#ifdef DEBUG_PRINTING
 	printf("Starting a RAM Ramp\n\r");
@@ -65,31 +115,32 @@ state AD9910_StartRAMRamp(){
 }
 
 //loads the predistorted Hann window into RAM, and sets up the RAM for playback
+//TODO: get this to work even if we can't use the entire RAM
 state AD9910_ConfigureRAM(float ramptime){
 	#ifdef DEBUG_PRINTING
 	printf("Configuring RAM with a %f second predistorted Hann window\n\r", ramptime);
 	#endif
 
 	state rs= PASS;
-	AD9910_SetProfile(PF1); //Set the profile to something that isn't PF0
+	AD9910_SetProfile(PF0);
 
 	//calculate the address step rate
-	uint16_t M0 = (ramptime / (RAM_LENGTH * 2)) * FSYSCLK / 4;
+	uint16_t M0 = (ramptime / RAM_LENGTH) * FSYSCLK / 4;
 	uint16_t pf_end_addr = RAM_LENGTH-1;
 
 	if(M0 < 1) {  //not enough time to step through the whole RAM
 		M0 = 1;
-		pf_end_addr = (uint16_t) (ramptime * (FSYSCLK / 8)); //divide by 2 due to symmetric waveform
+		pf_end_addr = (uint16_t) (ramptime * (FSYSCLK / 4));
 	}
 
 	#ifdef DEBUG_PRINTING
 	printf("\tAddress Step Rate: %d\n\r\tAddress Range: 0 to %d\n\r", M0, pf_end_addr);
 	#endif
 
-	//program RP0, addresses span the entire RAM, bidirectional mode, no zero crossing, dwell-high
-	rs |= AD9910_WriteReg(RP0, ((((uint64_t) M0) << 40) | (((uint64_t) pf_end_addr) << 30) | RPMC_RAMP_UPDOWN));
+	//program RP0, addresses span the entire RAM, ramp-up mode, no zero crossing, dwell-high
+	rs |= AD9910_WriteReg(RP0, ((((uint64_t) M0) << 40) | (((uint64_t) pf_end_addr) << 30) | RPMC_RAMP_UP));
 
-	rs |= AD9910_IO_Update();
+	rs |= AD9910_IO_Update(); //TODO do I want this here?
 
 	//fill in the RAM
 	uint8_t ram_addr = RAM;
@@ -137,6 +188,7 @@ state AD9910_ConfigureDefaultFreq(float frequency){
 }
 
 state AD9910_ConfigureRamp(float lower, float upper, float ramptime){
+
 	#ifdef DEBUG_PRINTING
 	printf("Configuring Ramp from %fHz to %fHz in %f seconds\n\r", lower, upper, ramptime);
 	#endif
@@ -180,7 +232,7 @@ state AD9910_StartRamp(){
 	HAL_GPIO_WritePin(TRIG_GPIO_Port, TRIG_Pin, GPIO_PIN_SET); //let the system know we're about to ramp
 	HAL_GPIO_WritePin(AD9910_DRCTL_GPIO_Port, AD9910_DRCTL_Pin, GPIO_PIN_SET); //ramp
 
-	while(!HAL_GPIO_ReadPin(AD9910_DROVER_GPIO_Port, AD9910_DROVER_Pin)); //wait for
+	while(!HAL_GPIO_ReadPin(AD9910_DROVER_GPIO_Port, AD9910_DROVER_Pin)); //wait for finish
 	HAL_GPIO_WritePin(AD9910_DRCTL_GPIO_Port, AD9910_DRCTL_Pin, GPIO_PIN_RESET); //don't ramp
 	HAL_GPIO_WritePin(TRIG_GPIO_Port, TRIG_Pin, GPIO_PIN_RESET);
 
@@ -369,14 +421,16 @@ uint16_t AD9910_ReadReg16(uint8_t reg){
 }
 
 state AD9910_IO_Update(){
-	#ifdef DEBUG_PRINTING
-	printf("-- IO Update --\n\r");
-	#endif
 
 	HAL_GPIO_WritePin(AD9910_IO_UPDATE_GPIO_Port, AD9910_IO_UPDATE_Pin, GPIO_PIN_SET);
 	HAL_Delay(1);
 	HAL_GPIO_WritePin(AD9910_IO_UPDATE_GPIO_Port, AD9910_IO_UPDATE_Pin, GPIO_PIN_RESET);
 	HAL_Delay(1);
+
+	#ifdef DEBUG_PRINTING				//this has to go after, otherwise it delays the trigger
+	printf("-- IO Update --\n\r");
+	#endif
+
 	return PASS;
 }
 

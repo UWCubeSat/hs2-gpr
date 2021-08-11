@@ -37,6 +37,8 @@
 	state AD9910_StartRAMRamp();
 	state AD9910_ConfigureRAM(float ramptime);
 	state AD9910_ConfigureDefaultFreq(float frequency);
+	state AD9910_ConfigureChirp(float lower, float upper, float duration);
+	state AD9910_Chirp();
 
 
 	//register macros
@@ -90,6 +92,8 @@
 	#define RPMC_RAMP_UPDOWN (0b010 << 0)
 	#define RAM_ENABLE (1 << 31)
 	#define RAM_DEST_AMP (0b10 << 29)
+	#define DR_CLEAR (1 << 12)
+	#define PHASE_CLEAR (1 << 11)
 
 	//profiles
 	#define PF0 0
