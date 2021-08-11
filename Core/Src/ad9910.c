@@ -13,10 +13,12 @@
 #include <stdio.h>
 #include <math.h>
 #include "retarget.h"
+#include "hann.h"
 
 #define DEBUG_PRINTING
 
-static uint8_t nbytes[] = {4,4,4,4,4,4,4,2,4,4,8,8,8,4,8,8,8,8,8,8,8,4}; //register lengths in bytes
+//Addresses ---------------0,1,2,3,4,5,6,7,8,9,a,b,c,d,e,f,10,11,12,13,14,15,16
+static uint8_t nbytes[] = {4,4,4,4,4,4,4,4,2,4,4,8,8,4,8,8,8, 8, 8, 8, 8, 8, 4}; //register lengths in bytes
 
 state AD9910_Init(){
 	HAL_GPIO_WritePin(AD9910_CS_GPIO_Port, AD9910_CS_Pin, GPIO_PIN_SET); //deselect SPI
@@ -43,8 +45,98 @@ state AD9910_Init(){
 	return rs;
 }
 
-state AD9910_ConfigureRamp(float lower, float upper, float ramptime){
+state AD9910_StartRAMRamp(){
+	#ifdef DEBUG_PRINTING
+	printf("Starting a RAM Ramp\n\r");
+	#endif
 
+	state rs = PASS;
+	rs |= AD9910_SetProfile(PF0); 	//set the profile to PF0
+	//enable the RAM
+	uint32_t cfr1 = AD9910_ReadReg32(CFR1);
+	rs |= AD9910_WriteReg(CFR1, (cfr1 | RAM_ENABLE));
+
+	HAL_GPIO_WritePin(TRIG_GPIO_Port, TRIG_Pin, GPIO_PIN_SET); //let the system know we're about to ramp
+	rs |= AD9910_IO_Update(); //this causes the ramp to start
+	while(!HAL_GPIO_ReadPin(AD9910_RSOVER_GPIO_Port, AD9910_RSOVER_Pin)); //wait for ramp to finish
+	HAL_GPIO_WritePin(TRIG_GPIO_Port, TRIG_Pin, GPIO_PIN_RESET);
+
+	return rs;
+}
+
+//loads the predistorted Hann window into RAM, and sets up the RAM for playback
+state AD9910_ConfigureRAM(float ramptime){
+	#ifdef DEBUG_PRINTING
+	printf("Configuring RAM with a %f second predistorted Hann window\n\r", ramptime);
+	#endif
+
+	state rs= PASS;
+	AD9910_SetProfile(PF1); //Set the profile to something that isn't PF0
+
+	//calculate the address step rate
+	uint16_t M0 = (ramptime / (RAM_LENGTH * 2)) * FSYSCLK / 4;
+	uint16_t pf_end_addr = RAM_LENGTH-1;
+
+	if(M0 < 1) {  //not enough time to step through the whole RAM
+		M0 = 1;
+		pf_end_addr = (uint16_t) (ramptime * (FSYSCLK / 8)); //divide by 2 due to symmetric waveform
+	}
+
+	#ifdef DEBUG_PRINTING
+	printf("\tAddress Step Rate: %d\n\r\tAddress Range: 0 to %d\n\r", M0, pf_end_addr);
+	#endif
+
+	//program RP0, addresses span the entire RAM, bidirectional mode, no zero crossing, dwell-high
+	rs |= AD9910_WriteReg(RP0, ((((uint64_t) M0) << 40) | (((uint64_t) pf_end_addr) << 30) | RPMC_RAMP_UPDOWN));
+
+	rs |= AD9910_IO_Update();
+
+	//fill in the RAM
+	uint8_t ram_addr = RAM;
+	HAL_GPIO_WritePin(AD9910_CS_GPIO_Port, AD9910_CS_Pin, GPIO_PIN_RESET);
+	HAL_SPI_Transmit(&hspi2, &ram_addr, 1, HAL_MAX_DELAY);
+	for(int i = 0; i < RAM_LENGTH; i++){
+		uint8_t byte1 = (window[i] >> 6) & 0xFF;
+		uint8_t byte2 = (window[i] << 2) & 0xFF;
+		uint8_t byte3 = 0;
+		uint8_t byte4 = 0;
+		HAL_SPI_Transmit(&hspi2, &byte1, 1, HAL_MAX_DELAY);
+		HAL_SPI_Transmit(&hspi2, &byte2, 1, HAL_MAX_DELAY);
+		HAL_SPI_Transmit(&hspi2, &byte3, 1, HAL_MAX_DELAY);
+		HAL_SPI_Transmit(&hspi2, &byte4, 1, HAL_MAX_DELAY);
+	}
+	HAL_GPIO_WritePin(AD9910_CS_GPIO_Port, AD9910_CS_Pin, GPIO_PIN_SET);
+
+	rs |= AD9910_IO_Update();
+
+	//set the RAM destination to amplitude
+	uint32_t cfr1 = AD9910_ReadReg32(CFR1);
+	rs |= AD9910_WriteReg(CFR1, ((cfr1 & ~(0b11 << 29)) | RAM_DEST_AMP));
+	rs |= AD9910_IO_Update();
+
+	return rs;
+}
+
+state AD9910_ConfigureDefaultFreq(float frequency){
+	#ifdef DEBUG_PRINTING
+	printf("Setting up defaults with %fHz\n\r", frequency);
+	#endif
+
+	//TODO, check bounds for frequency and amplitude
+	state rs = PASS;
+	uint32_t ftw = FREQ_TO_FTW(frequency);                             //compute the frequency tuning word
+
+	#ifdef DEBUG_PRINTING
+	printf("\tFTW: %d\n\r",(int) ftw);
+	#endif
+
+	rs |= AD9910_WriteReg(FTW, ftw);
+	rs |= AD9910_IO_Update(); //issue an IO update to latch the data
+
+	return rs;
+}
+
+state AD9910_ConfigureRamp(float lower, float upper, float ramptime){
 	#ifdef DEBUG_PRINTING
 	printf("Configuring Ramp from %fHz to %fHz in %f seconds\n\r", lower, upper, ramptime);
 	#endif
@@ -80,6 +172,10 @@ state AD9910_ConfigureRamp(float lower, float upper, float ramptime){
 }
 
 state AD9910_StartRamp(){
+	#ifdef DEBUG_PRINTING
+	printf("Triggering a DRG Ramp\n\r");
+	#endif
+
 	state rs = PASS;
 	HAL_GPIO_WritePin(TRIG_GPIO_Port, TRIG_Pin, GPIO_PIN_SET); //let the system know we're about to ramp
 	HAL_GPIO_WritePin(AD9910_DRCTL_GPIO_Port, AD9910_DRCTL_Pin, GPIO_PIN_SET); //ramp
@@ -105,10 +201,8 @@ state AD9910_SingleTone(uint8_t profile, float frequency, float amplitude){
 	printf("\tASF: %d\n\r\tFTW: %d\n\r", (int) asf, (int) ftw);
 	#endif
 
-	rs |= AD9910_WriteReg(0x0E + profile, (((uint64_t) asf << 48) | (ftw))); //load those parameters into the profile
+	rs |= AD9910_WriteReg(STP0 + profile, (((uint64_t) asf << 48) | (ftw))); //load those parameters into the profile
 	rs |= AD9910_IO_Update();
-
-	HAL_GPIO_WritePin(AD9910_TXE_GPIO_Port, AD9910_TXE_Pin, GPIO_PIN_SET);  //enable TX
 
 	rs |= AD9910_SetProfile(profile); //set profile
 
@@ -145,7 +239,46 @@ state AD9910_WriteReg(uint8_t reg, uint64_t value){
 	HAL_SPI_Transmit(&hspi2, packet, payloadsize + 1, HAL_MAX_DELAY);
 	HAL_GPIO_WritePin(AD9910_CS_GPIO_Port, AD9910_CS_Pin, GPIO_PIN_SET);
 
-	return PASS; //TODO - read the contents of the register out again to check for pass/fail
+// ----------------------- DEBUG ONLY --------------------------------
+//	AD9910_IO_Update(); --- THIS HAS BEEN DISABLED BECAUSE IT TRIGGERS A RAM RAMP WHEN I DON'T WANT IT
+//
+//	//check to see if the value was written correctly
+//	uint64_t nvalue;
+//	switch(payloadsize){
+//		case 2:
+//			nvalue = AD9910_ReadReg16(reg);
+//			if(nvalue != value){
+//				#ifdef DEBUG_PRINTING
+//				printf("\tWrite Fail, value 0x%x\n\r", (unsigned int) value);
+//				#endif
+//				return FAIL;
+//			}
+//			break;
+//		case 4:
+//			nvalue = AD9910_ReadReg32(reg);
+//			if(nvalue != value){
+//				#ifdef DEBUG_PRINTING
+//				printf("\tWrite Fail, value 0x%x\n\r", (unsigned int) value);
+//				#endif
+//				return FAIL;
+//			}
+//			break;
+//		default:
+//			nvalue = AD9910_ReadReg64(reg);
+//			if(nvalue != value){
+//				#ifdef DEBUG_PRINTING
+//				printf("\tWrite Fail, value 0x%x%x\n\r", (unsigned int) (nvalue >> 32), (unsigned int) (nvalue & 0xFFFFFFFF));
+//				#endif
+//				return FAIL;
+//			}
+//			break;
+//	}
+//
+//	#ifdef DEBUG_PRINTING
+//	printf("\tWrite pass\n\r");
+//	#endif
+
+	return PASS;
 }
 
 uint64_t AD9910_ReadReg64(uint8_t reg){

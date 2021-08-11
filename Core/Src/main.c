@@ -103,9 +103,9 @@ int main(void)
   AD9910_Init();
 
   //Create a single tone
-  AD9910_SingleTone(PF0, 10E6, 0.5);
-  HAL_Delay(10);
-  AD9910_ConfigureRamp(1E6, 20E6, 2E-6);
+  AD9910_ConfigureDefaultFreq(10E6);
+  HAL_Delay(1);
+  AD9910_ConfigureRAM(10E-6);
 
   /* USER CODE END 2 */
 
@@ -116,7 +116,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  AD9910_StartRamp();
+	  AD9910_StartRAMRamp();
 	  HAL_Delay(10000);
   }
   /* USER CODE END 3 */

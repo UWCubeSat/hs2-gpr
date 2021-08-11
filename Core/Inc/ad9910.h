@@ -20,6 +20,7 @@
 	#define FULL_SCALE_I_OUT 0.02007				//datasheet page 23. Iout = 86.4/RSET*(1+CODE/96)
 	#define LOAD_IMPEDANCE 50
 	#define FSYSCLK 1000000000.0f
+	#define RAM_LENGTH 1024LL
 
 	//function prototypes
 	state AD9910_Init();
@@ -33,6 +34,10 @@
 	uint64_t AD9910_ReadReg64(uint8_t reg);
 	uint32_t AD9910_ReadReg32(uint8_t reg);
 	uint16_t AD9910_ReadReg16(uint8_t reg);
+	state AD9910_StartRAMRamp();
+	state AD9910_ConfigureRAM(float ramptime);
+	state AD9910_ConfigureDefaultFreq(float frequency);
+
 
 	//register macros
 	#define CFR1 0x00
@@ -81,6 +86,10 @@
 	#define DR_ENABLE (1 << 19)
 	#define DR_NDH (1 << 18)
 	#define DR_NDL (1 << 17)
+	#define RPMC_RAMP_UP (0b001 << 0)
+	#define RPMC_RAMP_UPDOWN (0b010 << 0)
+	#define RAM_ENABLE (1 << 31)
+	#define RAM_DEST_AMP (0b10 << 29)
 
 	//profiles
 	#define PF0 0
