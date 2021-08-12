@@ -6,6 +6,8 @@
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
 ../Core/Src/ad9910.c \
+../Core/Src/adc08b200.c \
+../Core/Src/gpr.c \
 ../Core/Src/main.c \
 ../Core/Src/retarget.c \
 ../Core/Src/stm32f4xx_hal_msp.c \
@@ -15,6 +17,8 @@ C_SRCS += \
 
 OBJS += \
 ./Core/Src/ad9910.o \
+./Core/Src/adc08b200.o \
+./Core/Src/gpr.o \
 ./Core/Src/main.o \
 ./Core/Src/retarget.o \
 ./Core/Src/stm32f4xx_hal_msp.o \
@@ -24,6 +28,8 @@ OBJS += \
 
 C_DEPS += \
 ./Core/Src/ad9910.d \
+./Core/Src/adc08b200.d \
+./Core/Src/gpr.d \
 ./Core/Src/main.d \
 ./Core/Src/retarget.d \
 ./Core/Src/stm32f4xx_hal_msp.d \

@@ -15,7 +15,7 @@
 #include "retarget.h"
 #include "hann.h"
 
-#define DEBUG_PRINTING
+#define AD9910_DEBUG_PRINTING
 
 //Addresses ---------------0,1,2,3,4,5,6,7,8,9,a,b,c,d,e,f,10,11,12,13,14,15,16
 static uint8_t nbytes[] = {4,4,4,4,4,4,4,4,2,4,4,8,8,4,8,8,8, 8, 8, 8, 8, 8, 4}; //register lengths in bytes
@@ -23,7 +23,7 @@ static uint8_t nbytes[] = {4,4,4,4,4,4,4,4,2,4,4,8,8,4,8,8,8, 8, 8, 8, 8, 8, 4};
 state AD9910_Init(){
 	HAL_GPIO_WritePin(AD9910_CS_GPIO_Port, AD9910_CS_Pin, GPIO_PIN_SET); //deselect SPI
 
-	#ifdef DEBUG_PRINTING
+	#ifdef AD9910_DEBUG_PRINTING
 	printf("Initializing AD9910\n\r");
 	#endif
 
@@ -47,7 +47,7 @@ state AD9910_Init(){
 
 //Starts the chirp
 state AD9910_Chirp(){
-	#ifdef DEBUG_PRINTING
+	#ifdef AD9910_DEBUG_PRINTING
 	printf("Chirping\n\r");
 	#endif
 	state rs = PASS;
@@ -79,7 +79,7 @@ state AD9910_Chirp(){
  *Sets up a Hann-Windowed Chirp. Only works for sufficiently long durations to use the entire RAM
  */
 state AD9910_ConfigureChirp(float lower, float upper, float duration){
-	#ifdef DEBUG_PRINTING
+	#ifdef AD9910_DEBUG_PRINTING
 	printf("Setting up a Hann-Windowed Chirp from %fHz to %fHz in %fs\n\r", lower, upper, duration);
 	#endif
 
@@ -96,7 +96,7 @@ state AD9910_ConfigureChirp(float lower, float upper, float duration){
 }
 
 state AD9910_StartRAMRamp(){
-	#ifdef DEBUG_PRINTING
+	#ifdef AD9910_DEBUG_PRINTING
 	printf("Starting a RAM Ramp\n\r");
 	#endif
 
@@ -117,7 +117,7 @@ state AD9910_StartRAMRamp(){
 //loads the predistorted Hann window into RAM, and sets up the RAM for playback
 //TODO: get this to work even if we can't use the entire RAM
 state AD9910_ConfigureRAM(float ramptime){
-	#ifdef DEBUG_PRINTING
+	#ifdef AD9910_DEBUG_PRINTING
 	printf("Configuring RAM with a %f second predistorted Hann window\n\r", ramptime);
 	#endif
 
@@ -133,7 +133,7 @@ state AD9910_ConfigureRAM(float ramptime){
 		pf_end_addr = (uint16_t) (ramptime * (FSYSCLK / 4));
 	}
 
-	#ifdef DEBUG_PRINTING
+	#ifdef AD9910_DEBUG_PRINTING
 	printf("\tAddress Step Rate: %d\n\r\tAddress Range: 0 to %d\n\r", M0, pf_end_addr);
 	#endif
 
@@ -169,7 +169,7 @@ state AD9910_ConfigureRAM(float ramptime){
 }
 
 state AD9910_ConfigureDefaultFreq(float frequency){
-	#ifdef DEBUG_PRINTING
+	#ifdef AD9910_DEBUG_PRINTING
 	printf("Setting up defaults with %fHz\n\r", frequency);
 	#endif
 
@@ -177,7 +177,7 @@ state AD9910_ConfigureDefaultFreq(float frequency){
 	state rs = PASS;
 	uint32_t ftw = FREQ_TO_FTW(frequency);                             //compute the frequency tuning word
 
-	#ifdef DEBUG_PRINTING
+	#ifdef AD9910_DEBUG_PRINTING
 	printf("\tFTW: %d\n\r",(int) ftw);
 	#endif
 
@@ -189,7 +189,7 @@ state AD9910_ConfigureDefaultFreq(float frequency){
 
 state AD9910_ConfigureRamp(float lower, float upper, float ramptime){
 
-	#ifdef DEBUG_PRINTING
+	#ifdef AD9910_DEBUG_PRINTING
 	printf("Configuring Ramp from %fHz to %fHz in %f seconds\n\r", lower, upper, ramptime);
 	#endif
 
@@ -204,7 +204,7 @@ state AD9910_ConfigureRamp(float lower, float upper, float ramptime){
 		p = FSYSCLK/4 * ramptime / (upper_ftw - lower_ftw);
 	}
 
-	#ifdef DEBUG_PRINTING
+	#ifdef AD9910_DEBUG_PRINTING
 	printf("\tUpper FTW: %d\n\r\tLower FTW: %d\n\r\tPos Freq Step FTW: %d\n\r\tP: %d\n\r", (int) upper_ftw, (int) lower_ftw, (int) upstep_ftw, (int) p);
 	#endif
 
@@ -214,7 +214,7 @@ state AD9910_ConfigureRamp(float lower, float upper, float ramptime){
 	AD9910_IO_Update();
 
 	//Turn on DRG, set destination to frequency
-	#ifdef DEBUG_PRINTING
+	#ifdef AD9910_DEBUG_PRINTING
 	printf("Turning on DRG\n\r");
 	#endif
 	uint32_t cfr2 = AD9910_ReadReg32(CFR2);
@@ -224,7 +224,7 @@ state AD9910_ConfigureRamp(float lower, float upper, float ramptime){
 }
 
 state AD9910_StartRamp(){
-	#ifdef DEBUG_PRINTING
+	#ifdef AD9910_DEBUG_PRINTING
 	printf("Triggering a DRG Ramp\n\r");
 	#endif
 
@@ -240,7 +240,7 @@ state AD9910_StartRamp(){
 }
 
 state AD9910_SingleTone(uint8_t profile, float frequency, float amplitude){
-	#ifdef DEBUG_PRINTING
+	#ifdef AD9910_DEBUG_PRINTING
 	printf("Setting up PF%d with %fHz at %f volts\n\r", profile, frequency, amplitude);
 	#endif
 
@@ -249,7 +249,7 @@ state AD9910_SingleTone(uint8_t profile, float frequency, float amplitude){
 	uint16_t asf = AMP_TO_ASF(amplitude); //compute the amplitude scale factor
 	uint32_t ftw = FREQ_TO_FTW(frequency);                             //compute the frequency tuning word
 
-	#ifdef DEBUG_PRINTING
+	#ifdef AD9910_DEBUG_PRINTING
 	printf("\tASF: %d\n\r\tFTW: %d\n\r", (int) asf, (int) ftw);
 	#endif
 
@@ -262,7 +262,7 @@ state AD9910_SingleTone(uint8_t profile, float frequency, float amplitude){
 }
 
 state AD9910_Reset(){
-	#ifdef DEBUG_PRINTING
+	#ifdef AD9910_DEBUG_PRINTING
 	printf("AD9910 Master Reset\n\r");
 	#endif
 
@@ -274,7 +274,7 @@ state AD9910_Reset(){
 
 state AD9910_WriteReg(uint8_t reg, uint64_t value){
 
-	#ifdef DEBUG_PRINTING
+	#ifdef AD9910_DEBUG_PRINTING
 	printf("Writing value  0x%x%x to register 0x%x\n\r", (unsigned int) (value >> 32), (unsigned int) (value & 0xFFFFFFFF), (unsigned int) reg);
 	#endif
 
@@ -300,7 +300,7 @@ state AD9910_WriteReg(uint8_t reg, uint64_t value){
 //		case 2:
 //			nvalue = AD9910_ReadReg16(reg);
 //			if(nvalue != value){
-//				#ifdef DEBUG_PRINTING
+//				#ifdef AD9910_DEBUG_PRINTING
 //				printf("\tWrite Fail, value 0x%x\n\r", (unsigned int) value);
 //				#endif
 //				return FAIL;
@@ -309,7 +309,7 @@ state AD9910_WriteReg(uint8_t reg, uint64_t value){
 //		case 4:
 //			nvalue = AD9910_ReadReg32(reg);
 //			if(nvalue != value){
-//				#ifdef DEBUG_PRINTING
+//				#ifdef AD9910_DEBUG_PRINTING
 //				printf("\tWrite Fail, value 0x%x\n\r", (unsigned int) value);
 //				#endif
 //				return FAIL;
@@ -318,7 +318,7 @@ state AD9910_WriteReg(uint8_t reg, uint64_t value){
 //		default:
 //			nvalue = AD9910_ReadReg64(reg);
 //			if(nvalue != value){
-//				#ifdef DEBUG_PRINTING
+//				#ifdef AD9910_DEBUG_PRINTING
 //				printf("\tWrite Fail, value 0x%x%x\n\r", (unsigned int) (nvalue >> 32), (unsigned int) (nvalue & 0xFFFFFFFF));
 //				#endif
 //				return FAIL;
@@ -326,7 +326,7 @@ state AD9910_WriteReg(uint8_t reg, uint64_t value){
 //			break;
 //	}
 //
-//	#ifdef DEBUG_PRINTING
+//	#ifdef AD9910_DEBUG_PRINTING
 //	printf("\tWrite pass\n\r");
 //	#endif
 
@@ -335,7 +335,7 @@ state AD9910_WriteReg(uint8_t reg, uint64_t value){
 
 uint64_t AD9910_ReadReg64(uint8_t reg){
 
-	#ifdef DEBUG_PRINTING
+	#ifdef AD9910_DEBUG_PRINTING
 	printf("Reading from register 0x%x, ", reg);
 	#endif
 
@@ -359,7 +359,7 @@ uint64_t AD9910_ReadReg64(uint8_t reg){
 				(uint64_t) res[6] << 8 |
 				(uint64_t) res[7]);
 
-	#ifdef DEBUG_PRINTING
+	#ifdef AD9910_DEBUG_PRINTING
 	printf("Result: 0x%x%x\n\r", (int) (result >> 32), (int) (result & 0xFFFFFFFF));
 	#endif
 
@@ -367,7 +367,7 @@ uint64_t AD9910_ReadReg64(uint8_t reg){
 }
 
 uint32_t AD9910_ReadReg32(uint8_t reg){
-	#ifdef DEBUG_PRINTING
+	#ifdef AD9910_DEBUG_PRINTING
 	printf("Reading from register 0x%x, ", reg);
 	#endif
 
@@ -387,7 +387,7 @@ uint32_t AD9910_ReadReg32(uint8_t reg){
 			(uint32_t) res[2] << 8 |
 			(uint32_t) res[3]);
 
-	#ifdef DEBUG_PRINTING
+	#ifdef AD9910_DEBUG_PRINTING
 	printf("Result: 0x%x\n\r", (unsigned int) result);
 	#endif
 
@@ -395,7 +395,7 @@ uint32_t AD9910_ReadReg32(uint8_t reg){
 }
 
 uint16_t AD9910_ReadReg16(uint8_t reg){
-	#ifdef DEBUG_PRINTING
+	#ifdef AD9910_DEBUG_PRINTING
 	printf("Reading from register 0x%x, ", reg);
 	#endif
 
@@ -413,7 +413,7 @@ uint16_t AD9910_ReadReg16(uint8_t reg){
 	uint16_t result = ((uint16_t) res[0] << 8 |
 			(uint16_t) res[1]);
 
-	#ifdef DEBUG_PRINTING
+	#ifdef AD9910_DEBUG_PRINTING
 	printf("Result: 0x%x\n\r", result);
 	#endif
 
@@ -427,7 +427,7 @@ state AD9910_IO_Update(){
 	HAL_GPIO_WritePin(AD9910_IO_UPDATE_GPIO_Port, AD9910_IO_UPDATE_Pin, GPIO_PIN_RESET);
 	HAL_Delay(1);
 
-	#ifdef DEBUG_PRINTING				//this has to go after, otherwise it delays the trigger
+	#ifdef AD9910_DEBUG_PRINTING				//this has to go after, otherwise it delays the trigger
 	printf("-- IO Update --\n\r");
 	#endif
 
@@ -435,7 +435,7 @@ state AD9910_IO_Update(){
 }
 
 state AD9910_SetProfile(uint8_t pf){												//TODO: should this be synchronous?
-	#ifdef DEBUG_PRINTING
+	#ifdef AD9910_DEBUG_PRINTING
 	printf("Setting Profile to PF%d\n\r", pf);
 	#endif
 
