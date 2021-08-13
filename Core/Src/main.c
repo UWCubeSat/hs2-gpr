@@ -113,8 +113,11 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  ADC_FillBuffer();
-	  ADC_ReadBuffer(adcdata);
+	  if(ADC_FillBuffer() == NICE){
+		  ADC_ReadBuffer(adcdata);
+		  ADC_PrintBuf(adcdata);
+	  }
+
 	  HAL_Delay(10000);
   }
   /* USER CODE END 3 */
@@ -247,8 +250,8 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
-  __HAL_RCC_GPIOE_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
+  __HAL_RCC_GPIOE_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
@@ -256,16 +259,16 @@ static void MX_GPIO_Init(void)
                           |AD9910_PF0_Pin|AD9910_PF1_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, ADC_CLKEN_Pin|AD9910_CS_Pin|AD9910_RST_Pin|AD9910_IO_RST_Pin
-                          |AD9910_PWRDN_Pin|AD9910_PF2_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, ADC_CLKEN_Pin|ADC_ASW_Pin|ADC_WEN_Pin|ADC_RCLK_Pin
+                          |AD9910_F1_Pin|AD9910_DRCTL_Pin|AD9910_DRHOLD_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOE, ADC_RESET_Pin|ADC_PDADC_Pin|ADC_PD_Pin|ADC_OEDGE_Pin
                           |ADC_REN_Pin|ADC_OE_Pin|TRIG_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, ADC_ASW_Pin|ADC_WEN_Pin|ADC_RCLK_Pin|AD9910_F1_Pin
-                          |AD9910_DRCTL_Pin|AD9910_DRHOLD_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOC, AD9910_CS_Pin|AD9910_RST_Pin|AD9910_IO_RST_Pin|AD9910_PWRDN_Pin
+                          |AD9910_PF2_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOD, AD9910_OSK_Pin|AD9910_IO_UPDATE_Pin|AD9910_TXE_Pin|AD9910_F0_Pin, GPIO_PIN_RESET);
@@ -285,14 +288,14 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : ADC_CLKEN_Pin AD9910_CS_Pin AD9910_RST_Pin AD9910_IO_RST_Pin
-                           AD9910_PWRDN_Pin AD9910_PF2_Pin */
-  GPIO_InitStruct.Pin = ADC_CLKEN_Pin|AD9910_CS_Pin|AD9910_RST_Pin|AD9910_IO_RST_Pin
-                          |AD9910_PWRDN_Pin|AD9910_PF2_Pin;
+  /*Configure GPIO pins : ADC_CLKEN_Pin ADC_ASW_Pin ADC_WEN_Pin ADC_RCLK_Pin
+                           AD9910_F1_Pin AD9910_DRCTL_Pin AD9910_DRHOLD_Pin */
+  GPIO_InitStruct.Pin = ADC_CLKEN_Pin|ADC_ASW_Pin|ADC_WEN_Pin|ADC_RCLK_Pin
+                          |AD9910_F1_Pin|AD9910_DRCTL_Pin|AD9910_DRHOLD_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pins : ADC_RESET_Pin ADC_PDADC_Pin ADC_PD_Pin ADC_OEDGE_Pin
                            ADC_REN_Pin ADC_OE_Pin */
@@ -309,15 +312,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : ADC_ASW_Pin ADC_WEN_Pin ADC_RCLK_Pin AD9910_F1_Pin
-                           AD9910_DRCTL_Pin AD9910_DRHOLD_Pin */
-  GPIO_InitStruct.Pin = ADC_ASW_Pin|ADC_WEN_Pin|ADC_RCLK_Pin|AD9910_F1_Pin
-                          |AD9910_DRCTL_Pin|AD9910_DRHOLD_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
   /*Configure GPIO pins : ADC_EF_Pin ADC_FF_Pin */
   GPIO_InitStruct.Pin = ADC_EF_Pin|ADC_FF_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
@@ -333,6 +327,15 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : AD9910_CS_Pin AD9910_RST_Pin AD9910_IO_RST_Pin AD9910_PWRDN_Pin
+                           AD9910_PF2_Pin */
+  GPIO_InitStruct.Pin = AD9910_CS_Pin|AD9910_RST_Pin|AD9910_IO_RST_Pin|AD9910_PWRDN_Pin
+                          |AD9910_PF2_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
   /*Configure GPIO pins : SYNC_ERR_Pin AD9910_RSOVER_Pin */
   GPIO_InitStruct.Pin = SYNC_ERR_Pin|AD9910_RSOVER_Pin;

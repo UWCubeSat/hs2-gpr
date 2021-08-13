@@ -19,6 +19,9 @@
 	#define MULT 8  //clock frequency multiplier, as set by the MULT pins
 	#define BSIZE 1024 //buffer size, as set by the BSIZE pins
 
+	//serial data exfiltration
+	#define PREFIX "DATABUF: "
+
 	//offsets for getStatus
 	#define FF (1 << 2)
 	#define EF (1 << 1)
@@ -32,5 +35,6 @@
 	uint8_t ADC_GetStatus();
 	uint8_t ADC_FullPowerDown();
 	uint8_t ADC_Reset();
+	uint8_t ADC_PrintBuf(uint8_t databuf[]);
 
 #endif /* INC_ADC08B200_H_ */
