@@ -26,7 +26,7 @@
 
 	//function prototypes
 	uint8_t ADC_Init();
-	uint8_t ADC_ReadBuffer(uint8_t data[]);
+	uint8_t ADC_ReadBufferCPU(uint8_t data[]);
 	void pulseRCLK();
 	uint8_t ADC_FillBuffer();
 	uint8_t ADC_GetStatus();

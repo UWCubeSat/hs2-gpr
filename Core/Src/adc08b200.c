@@ -37,10 +37,10 @@ uint8_t ADC_Init(){
 	return NICE;
 }
 
-//reads out the internal ADC buffer into RAM
-uint8_t ADC_ReadBuffer(uint8_t data[]){
+// reads out the internal ADC buffer into RAM with CPU
+uint8_t ADC_ReadBufferCPU(uint8_t data[]){
 	#ifdef ADC_DEBUG_PRINTING
-	printf("Reading the ADC Buffer\n\r");
+	printf("Reading the ADC Buffer with CPU\n\r");
 	#endif
 
 	if(!HAL_GPIO_ReadPin(ADC_FF_GPIO_Port, ADC_FF_Pin)){
@@ -66,7 +66,7 @@ uint8_t ADC_ReadBuffer(uint8_t data[]){
 	for(int i = 0; i < BSIZE; i++){		//read out the data
 		pulseRCLK();
 		while(!HAL_GPIO_ReadPin(ADC_DRDY_GPIO_Port, ADC_DRDY_Pin)); //wait for the data
-		data[i] = ((GPIOB->IDR) >> 8);
+		data[i] = ((GPIOD->IDR) >> 8);
 	}
 
 	return NICE;
