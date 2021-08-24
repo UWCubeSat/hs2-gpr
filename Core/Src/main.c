@@ -47,6 +47,9 @@
 /* Private variables ---------------------------------------------------------*/
 SPI_HandleTypeDef hspi2;
 
+TIM_HandleTypeDef htim1;
+DMA_HandleTypeDef hdma_tim1_ch1;
+
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
@@ -59,7 +62,11 @@ uint8_t adcdata[1024]; //adc data buffer
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_SPI2_Init(void);
+static void MX_DMA_Init(void);
+static void MX_TIM1_Init(void);
 static void MX_USART2_UART_Init(void);
+static void TransferComplete(DMA_HandleTypeDef *DmaHandle);
+static void TransferError(DMA_HandleTypeDef *DmaHandle);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -98,6 +105,8 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_SPI2_Init();
+  MX_DMA_Init();
+  MX_TIM1_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
   RetargetInit(&huart2); //set up debug printf
@@ -114,7 +123,7 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 	  ADC_FillBuffer();
-	  ADC_ReadBuffer(adcdata);
+	  ADC_ReadBufferCPU(adcdata);
 	  HAL_Delay(10000);
   }
   /* USER CODE END 3 */
@@ -202,6 +211,72 @@ static void MX_SPI2_Init(void)
 }
 
 /**
+  * @brief TIM1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM1_Init(void)
+{
+
+  /* USER CODE BEGIN TIM1_Init 0 */
+
+  /* USER CODE END TIM1_Init 0 */
+
+  TIM_SlaveConfigTypeDef sSlaveConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_IC_InitTypeDef sConfigIC = {0};
+
+  /* USER CODE BEGIN TIM1_Init 1 */
+
+  /* USER CODE END TIM1_Init 1 */
+  htim1.Instance = TIM1;
+  htim1.Init.Prescaler = 0;
+  htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim1.Init.Period = 1;
+  htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim1.Init.RepetitionCounter = 0;
+  htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_IC_Init(&htim1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sSlaveConfig.SlaveMode = TIM_SLAVEMODE_RESET;
+  sSlaveConfig.InputTrigger = TIM_TS_TI1F_ED;
+  sSlaveConfig.TriggerPolarity = TIM_INPUTCHANNELPOLARITY_RISING;
+  sSlaveConfig.TriggerFilter = 0;
+  if (HAL_TIM_SlaveConfigSynchro(&htim1, &sSlaveConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim1, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigIC.ICPolarity = TIM_INPUTCHANNELPOLARITY_FALLING;
+  sConfigIC.ICSelection = TIM_ICSELECTION_DIRECTTI;
+  sConfigIC.ICPrescaler = TIM_ICPSC_DIV1;
+  sConfigIC.ICFilter = 0;
+  if (HAL_TIM_IC_ConfigChannel(&htim1, &sConfigIC, TIM_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM1_Init 2 */
+  htim1.hdma[TIM_DMA_ID_CC1]->XferCpltCallback = TransferComplete;
+  htim1.hdma[TIM_DMA_ID_CC1]->XferErrorCallback = TransferError;
+
+  __HAL_TIM_ENABLE_DMA(&htim1, TIM_DMA_CC1);
+
+  /* USER CODE END TIM1_Init 2 */
+
+}
+
+/**
   * @brief USART2 Initialization Function
   * @param None
   * @retval None
@@ -231,6 +306,22 @@ static void MX_USART2_UART_Init(void)
   /* USER CODE BEGIN USART2_Init 2 */
 
   /* USER CODE END USART2_Init 2 */
+
+}
+
+/**
+  * Enable DMA controller clock
+  */
+static void MX_DMA_Init(void)
+{
+
+  /* DMA controller clock enable */
+  __HAL_RCC_DMA2_CLK_ENABLE();
+
+  /* DMA interrupt init */
+  /* DMA2_Stream1_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA2_Stream1_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA2_Stream1_IRQn);
 
 }
 
@@ -268,7 +359,7 @@ static void MX_GPIO_Init(void)
                           |AD9910_DRCTL_Pin|AD9910_DRHOLD_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOD, AD9910_OSK_Pin|AD9910_IO_UPDATE_Pin|AD9910_TXE_Pin|AD9910_F0_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOD, AD9910_OSK_Pin|AD9910_IO_UPDATE_Pin|GPIO_PIN_4|AD9910_F0_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : B1_Pin */
   GPIO_InitStruct.Pin = B1_Pin;
@@ -303,11 +394,11 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : ADC_DRDY_Pin ADC_WENSYNC_Pin */
-  GPIO_InitStruct.Pin = ADC_DRDY_Pin|ADC_WENSYNC_Pin;
+  /*Configure GPIO pin : ADC_WENSYNC_Pin */
+  GPIO_InitStruct.Pin = ADC_WENSYNC_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
+  HAL_GPIO_Init(ADC_WENSYNC_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : ADC_ASW_Pin ADC_WEN_Pin ADC_RCLK_Pin AD9910_F1_Pin
                            AD9910_DRCTL_Pin AD9910_DRHOLD_Pin */
@@ -325,10 +416,10 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pins : DATA_Pin DATAD9_Pin DATAD10_Pin DATAD11_Pin
-                           DATAD12_Pin DATAD13_Pin DATAD14_Pin DATAD15_Pin
+                           DATAD12_Pin PD13 DATAD14_Pin DATAD15_Pin
                            AD9910_PLLLOCK_Pin AD9910_SYNC_CLK_Pin */
   GPIO_InitStruct.Pin = DATA_Pin|DATAD9_Pin|DATAD10_Pin|DATAD11_Pin
-                          |DATAD12_Pin|DATAD13_Pin|DATAD14_Pin|DATAD15_Pin
+                          |DATAD12_Pin|GPIO_PIN_13|DATAD14_Pin|DATAD15_Pin
                           |AD9910_PLLLOCK_Pin|AD9910_SYNC_CLK_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
@@ -346,8 +437,8 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : AD9910_OSK_Pin AD9910_IO_UPDATE_Pin AD9910_TXE_Pin AD9910_F0_Pin */
-  GPIO_InitStruct.Pin = AD9910_OSK_Pin|AD9910_IO_UPDATE_Pin|AD9910_TXE_Pin|AD9910_F0_Pin;
+  /*Configure GPIO pins : AD9910_OSK_Pin AD9910_IO_UPDATE_Pin PD4 AD9910_F0_Pin */
+  GPIO_InitStruct.Pin = AD9910_OSK_Pin|AD9910_IO_UPDATE_Pin|GPIO_PIN_4|AD9910_F0_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -363,6 +454,12 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+
+static void TransferComplete(DMA_HandleTypeDef *DmaHandle)
+{
+
+
+}
 
 /* USER CODE END 4 */
 

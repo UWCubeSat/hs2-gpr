@@ -80,8 +80,6 @@ void Error_Handler(void);
 #define ADC_CLKEN_GPIO_Port GPIOC
 #define ADC_RESET_Pin GPIO_PIN_7
 #define ADC_RESET_GPIO_Port GPIOE
-#define ADC_DRDY_Pin GPIO_PIN_9
-#define ADC_DRDY_GPIO_Port GPIOE
 #define ADC_PDADC_Pin GPIO_PIN_10
 #define ADC_PDADC_GPIO_Port GPIOE
 #define ADC_WENSYNC_Pin GPIO_PIN_11
@@ -114,8 +112,6 @@ void Error_Handler(void);
 #define DATAD11_GPIO_Port GPIOD
 #define DATAD12_Pin GPIO_PIN_12
 #define DATAD12_GPIO_Port GPIOD
-#define DATAD13_Pin GPIO_PIN_13
-#define DATAD13_GPIO_Port GPIOD
 #define DATAD14_Pin GPIO_PIN_14
 #define DATAD14_GPIO_Port GPIOD
 #define DATAD15_Pin GPIO_PIN_15
@@ -154,8 +150,6 @@ void Error_Handler(void);
 #define AD9910_IO_UPDATE_GPIO_Port GPIOD
 #define AD9910_SYNC_CLK_Pin GPIO_PIN_3
 #define AD9910_SYNC_CLK_GPIO_Port GPIOD
-#define AD9910_TXE_Pin GPIO_PIN_4
-#define AD9910_TXE_GPIO_Port GPIOD
 #define AD9910_F0_Pin GPIO_PIN_6
 #define AD9910_F0_GPIO_Port GPIOD
 #define AD9910_F1_Pin GPIO_PIN_3
