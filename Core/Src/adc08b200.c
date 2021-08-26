@@ -79,20 +79,17 @@ uint8_t ADC_ReadBuffer(uint8_t data[]){
 	/*
 	 * See Figure 6 in the datasheet for this timing
 	 */
-
-	pulseRCLK();
 	HAL_GPIO_WritePin(ADC_REN_GPIO_Port, ADC_REN_Pin, GPIO_PIN_SET);
-	HAL_Delay(1);
 
-	for(int i = 0; i < 3; i++){
+	for(int i = 0; i < 2; i++){  //TODO timing constraing violationion
 		pulseRCLK();
 		HAL_Delay(1);
 	}
 
 	for(int i = 0; i < BSIZE; i++){		//read out the data
-		pulseRCLK();
 		while(!HAL_GPIO_ReadPin(ADC_DRDY_GPIO_Port, ADC_DRDY_Pin)); //wait for the data
 		data[i] = ((GPIOD->IDR) >> 8);
+		pulseRCLK();
 	}
 
 	HAL_GPIO_WritePin(ADC_REN_GPIO_Port, ADC_REN_Pin, GPIO_PIN_RESET);
