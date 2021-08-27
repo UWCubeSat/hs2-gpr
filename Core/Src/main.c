@@ -102,8 +102,8 @@ int main(void)
   /* USER CODE BEGIN 2 */
   RetargetInit(&huart2); //set up debug printf
 
+  AD9910_Init();
   ADC_Init();
-
   /* USER CODE END 2 */
 
   /* Infinite loop */
