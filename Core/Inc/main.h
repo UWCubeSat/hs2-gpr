@@ -76,8 +76,8 @@ void Error_Handler(void);
 #define SW2_GPIO_Port GPIOA
 #define SW3A_Pin GPIO_PIN_6
 #define SW3A_GPIO_Port GPIOA
-#define ADC_CLKEN_Pin GPIO_PIN_4
-#define ADC_CLKEN_GPIO_Port GPIOC
+#define ADC_CLKEN_Pin GPIO_PIN_0
+#define ADC_CLKEN_GPIO_Port GPIOB
 #define ADC_RESET_Pin GPIO_PIN_7
 #define ADC_RESET_GPIO_Port GPIOE
 #define ADC_DRDY_Pin GPIO_PIN_9

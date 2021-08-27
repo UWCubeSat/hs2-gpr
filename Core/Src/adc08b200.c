@@ -16,8 +16,25 @@
 
 #define ADC_DEBUG_PRINTING
 
+uint8_t ADC_PrintBuf(uint8_t databuf[]){
+	printf(PREFIX);
+
+	for(int i = 0; i < BSIZE; i++){
+		printf("%d,", databuf[i]);
+	}
+
+	#ifdef ADC_DEBUG_PRINTING
+	printf("\n\n\r");
+	#endif
+
+	return NICE; //  ;]
+}
 
 uint8_t ADC_Init(){
+	#ifdef ADC_DEBUG_PRINTING
+	printf("Initializing the ADC08b200\n\r");
+	#endif
+
 	//wake up
 	HAL_GPIO_WritePin(ADC_PD_GPIO_Port, ADC_PD_Pin, GPIO_PIN_RESET);
 	HAL_GPIO_WritePin(ADC_PDADC_GPIO_Port, ADC_PDADC_Pin, GPIO_PIN_RESET);
@@ -31,6 +48,9 @@ uint8_t ADC_Init(){
 	//turn on the clock
 	HAL_GPIO_WritePin(ADC_CLKEN_GPIO_Port,ADC_CLKEN_Pin, GPIO_PIN_SET);
 
+	//enable outputs
+	HAL_GPIO_WritePin(ADC_OE_GPIO_Port, ADC_OE_Pin, GPIO_PIN_SET);
+
 	ADC_Reset();
 	ADC_GetStatus();
 
@@ -43,31 +63,36 @@ uint8_t ADC_ReadBufferCPU(uint8_t data[]){
 	printf("Reading the ADC Buffer with CPU\n\r");
 	#endif
 
+
+	//warn me
+	HAL_GPIO_WritePin(TRIG_GPIO_Port, TRIG_Pin, GPIO_PIN_SET);
+
 	if(!HAL_GPIO_ReadPin(ADC_FF_GPIO_Port, ADC_FF_Pin)){
 		#ifdef ADC_DEBUG_PRINTING
-		printf("\treadBuffer() failed, buffer is empty\n\r");
+		printf("\treadBuffer() failed, buffer is not full\n\r");
 		#endif
 		return RIP;
 	}
 
+	HAL_GPIO_WritePin(TRIG_GPIO_Port, TRIG_Pin, GPIO_PIN_RESET);
+
 	/*
 	 * See Figure 6 in the datasheet for this timing
 	 */
-
-	pulseRCLK();
 	HAL_GPIO_WritePin(ADC_REN_GPIO_Port, ADC_REN_Pin, GPIO_PIN_SET);
-	HAL_Delay(1);
 
-	for(int i = 0; i < 3; i++){
+	for(int i = 0; i < 2; i++){  //TODO timing constraing violationion
 		pulseRCLK();
 		HAL_Delay(1);
 	}
 
 	for(int i = 0; i < BSIZE; i++){		//read out the data
-		pulseRCLK();
 		while(!HAL_GPIO_ReadPin(ADC_DRDY_GPIO_Port, ADC_DRDY_Pin)); //wait for the data
 		data[i] = ((GPIOD->IDR) >> 8);
+		pulseRCLK();
 	}
+
+	HAL_GPIO_WritePin(ADC_REN_GPIO_Port, ADC_REN_Pin, GPIO_PIN_RESET);
 
 	return NICE;
 
@@ -88,7 +113,7 @@ uint8_t ADC_FillBuffer(){
 	printf("Filling the ADC Buffer\n\r");
 	#endif
 
-	if(!HAL_GPIO_ReadPin(ADC_FF_GPIO_Port, ADC_FF_Pin)){
+	if(!HAL_GPIO_ReadPin(ADC_EF_GPIO_Port, ADC_EF_Pin)){
 		#ifdef ADC_DEBUG_PRINTING
 		printf("\tFillBuffer() failed, buffer is not empty\n\r");
 		#endif
@@ -97,9 +122,9 @@ uint8_t ADC_FillBuffer(){
 
 	//assert WEN to start a capture
 	HAL_GPIO_WritePin(ADC_WEN_GPIO_Port, ADC_WEN_Pin, GPIO_PIN_SET);
-	while(!HAL_GPIO_ReadPin(ADC_FF_GPIO_Port, ADC_FF_Pin)) //wait for the buffer to be full
+	HAL_Delay(1);
+	while(!HAL_GPIO_ReadPin(ADC_FF_GPIO_Port, ADC_FF_Pin)); //wait for the buffer to be full
 	HAL_GPIO_WritePin(ADC_WEN_GPIO_Port, ADC_WEN_Pin, GPIO_PIN_RESET); //stop writing
-
 	return NICE;
 }
 
