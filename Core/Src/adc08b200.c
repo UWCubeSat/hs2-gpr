@@ -57,10 +57,10 @@ uint8_t ADC_Init(){
 	return NICE;
 }
 
-//reads out the internal ADC buffer into RAM
-uint8_t ADC_ReadBuffer(uint8_t data[]){
+// reads out the internal ADC buffer into RAM with CPU
+uint8_t ADC_ReadBufferCPU(uint8_t data[]){
 	#ifdef ADC_DEBUG_PRINTING
-	printf("Reading the ADC Buffer\n\r");
+	printf("Reading the ADC Buffer with CPU\n\r");
 	#endif
 
 
