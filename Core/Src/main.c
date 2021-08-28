@@ -24,6 +24,7 @@
 /* USER CODE BEGIN Includes */
 #include "ad9910.h"
 #include "adc08b200.h"
+#include "gpr.h"
 #include <stdio.h>
 #include "retarget.h"
 
@@ -113,11 +114,8 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  if(ADC_FillBuffer() == NICE){
-		  ADC_ReadBuffer(adcdata);
-		  ADC_PrintBuf(adcdata);
-	  }
 
+	  GPR_CoaxTest(65E6, 95E6, 200E-6);
 	  HAL_Delay(10000);
   }
   /* USER CODE END 3 */

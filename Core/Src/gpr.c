@@ -25,7 +25,20 @@ uint8_t adcdata[1024]; //adc data buffer
 uint8_t GPR_CoaxTest(float flow, float fhigh, float tchirp){
 	#ifdef GPR_DEBUG_PRINTING
 	printf("Starting a Coaxial Cable Test\n\r");
+	printf("Set RANGE SELECT to SPLIT\n\r");
+	printf("Disable PA BYPASS\n\r");
+	printf("Disable both LNAs\n\r");
 	#endif
+
+	/*
+	//transmitting into the splitter, not directly into the mixer. Set U6 to RF2v
+	HAL_GPIO_WritePin(SW1_GPIO_Port,SW1_Pin,GPIO_PIN_SET);
+
+	//Enable receiving - U17 RFC to RF2, U16 RF1 to RF2
+	HAL_GPIO_WritePin(SW1_GPIO_Port,SW2_Pin,GPIO_PIN_SET);
+	HAL_GPIO_WritePin(SW1_GPIO_Port,SW3A_Pin,GPIO_PIN_SET);
+	HAL_GPIO_WritePin(SW1_GPIO_Port,SW3A_Pin,GPIO_PIN_RESET);
+	*/
 
 	//set up the AD9910
 	AD9910_ConfigureChirp(flow, fhigh, tchirp);
@@ -42,6 +55,8 @@ uint8_t GPR_CoaxTest(float flow, float fhigh, float tchirp){
 
 	HAL_GPIO_WritePin(AD9910_DRCTL_GPIO_Port, AD9910_DRCTL_Pin, GPIO_PIN_SET); //ramp up when you can
 
+	HAL_GPIO_WritePin(TRIG_GPIO_Port,TRIG_Pin, GPIO_PIN_SET);  //start the trigger
+
 
 	//start an ADC read
 	HAL_GPIO_WritePin(ADC_WEN_GPIO_Port, ADC_WEN_Pin, GPIO_PIN_SET);
@@ -56,9 +71,11 @@ uint8_t GPR_CoaxTest(float flow, float fhigh, float tchirp){
 	HAL_GPIO_WritePin(AD9910_IO_UPDATE_GPIO_Port, AD9910_IO_UPDATE_Pin, GPIO_PIN_RESET);
 	HAL_GPIO_WritePin(ADC_WEN_GPIO_Port, ADC_WEN_Pin, GPIO_PIN_RESET); //stop writing
 
+	HAL_GPIO_WritePin(TRIG_GPIO_Port,TRIG_Pin, GPIO_PIN_RESET);  //stop the trigger
+
 	//read out the data
 	ADC_ReadBuffer(adcdata);
-	ADC_PrintBuf(adcdata);
+	//ADC_PrintBuf(adcdata);
 
 	return NICE;
 }
