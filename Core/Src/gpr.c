@@ -30,7 +30,6 @@ uint8_t GPR_CoaxTest(float flow, float fhigh, float tchirp){
 	printf("Disable both LNAs\n\r");
 	#endif
 
-	/*
 	//transmitting into the splitter, not directly into the mixer. Set U6 to RF2v
 	HAL_GPIO_WritePin(SW1_GPIO_Port,SW1_Pin,GPIO_PIN_SET);
 
@@ -38,7 +37,6 @@ uint8_t GPR_CoaxTest(float flow, float fhigh, float tchirp){
 	HAL_GPIO_WritePin(SW1_GPIO_Port,SW2_Pin,GPIO_PIN_SET);
 	HAL_GPIO_WritePin(SW1_GPIO_Port,SW3A_Pin,GPIO_PIN_SET);
 	HAL_GPIO_WritePin(SW1_GPIO_Port,SW3A_Pin,GPIO_PIN_RESET);
-	*/
 
 	//set up the AD9910
 	AD9910_ConfigureChirp(flow, fhigh, tchirp);
@@ -74,7 +72,7 @@ uint8_t GPR_CoaxTest(float flow, float fhigh, float tchirp){
 	HAL_GPIO_WritePin(TRIG_GPIO_Port,TRIG_Pin, GPIO_PIN_RESET);  //stop the trigger
 
 	//read out the data
-	ADC_ReadBuffer(adcdata);
+	ADC_ReadBufferCPU(adcdata);
 	//ADC_PrintBuf(adcdata);
 
 	return NICE;

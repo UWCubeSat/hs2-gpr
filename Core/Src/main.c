@@ -115,7 +115,7 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
-	  GPR_CoaxTest(65E6, 95E6, 200E-6);
+	  GPR_CoaxTest(65E6, 95E6, 1E-3);
 	  HAL_Delay(10000);
   }
   /* USER CODE END 3 */
